@@ -23,13 +23,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	scope, err := hackerone.GetProgramScope(flags)
+	_, err := hackerone.GetProgramScope(flags)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "An error occured when fetching scope: %s\n", err)
 	}
 
-	for _, data := range scope.Relationships.StructuredScopes.Data {
-		fmt.Println(data.Attributes.Identifier)
-	}
+	// for _, data := range scope.Relationships.StructuredScopes.Data {
+	// 	fmt.Println(data.Attributes.Identifier)
+	// }
 
 }

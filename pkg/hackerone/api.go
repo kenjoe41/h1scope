@@ -32,8 +32,9 @@ func GetProgramScope(opt options.Options) (*Scope, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return ProcessScope(scope, opt), nil
+	ProcessProgramScope(*scope, opt)
+	// return ProcessScope(scope, opt), nil
+	return nil, nil
 }
 
 func makeAPIRequest(link string, opt options.Options) (*http.Response, error) {
