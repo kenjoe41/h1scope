@@ -33,9 +33,11 @@ func GetProgramScope(opt options.Options) (*Scope, error) {
 
 func makeAPIRequest(link string, opt options.Options) (*http.Response, error) {
 
-	client := &retryablehttp.Client{}
+	client := retryablehttp.NewClient()
+	client.Logger = nil
 
 	req, _ := retryablehttp.NewRequest("GET", link, nil)
+
 	req.Header.Set("Accept", "application/json")
 	req.Header.Add("Authorization", "Basic "+basicAuth(opt))
 
