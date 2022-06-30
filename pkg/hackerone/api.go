@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/kenjoe41/h1scope/options"
+	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
 func GetProgramScope(opt options.Options) (*Scope, error) {

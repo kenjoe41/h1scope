@@ -1,4 +1,4 @@
-package hackerone
+package options
 
 import (
 	"flag"
