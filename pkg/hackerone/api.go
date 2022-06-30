@@ -28,7 +28,12 @@ func GetProgramScope(opt options.Options) (*Scope, error) {
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("non-2XX response from server: %s", err)
 	}
-	return Unmarshal(resBody), nil
+	scope, err := Unmarshal(resBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return ProcessScope(scope, opt), nil
 }
 
 func makeAPIRequest(link string, opt options.Options) (*http.Response, error) {
@@ -53,11 +58,11 @@ func basicAuth(opt options.Options) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
-func Unmarshal(jsonBytes []byte) *Scope {
+func Unmarshal(jsonBytes []byte) (*Scope, error) {
 	scope := new(Scope)
 
 	if err := json.Unmarshal(jsonBytes, &scope); err != nil {
-		return nil
+		return nil, err
 	}
-	return scope
+	return scope, nil
 }
