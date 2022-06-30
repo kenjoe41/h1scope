@@ -7,21 +7,16 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
 func GetProgramScope(opt options.Options) (*Scope, error) {
 	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs/%s", opt.Handle)
 
-	client := &http.Client{}
-
-	req, _ := http.NewRequest("GET", link, nil)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Add("Authorization", "Basic "+basicAuth(opt))
-
-	resp, err := client.Do(req)
+	resp, err := makeAPIRequest(link, opt)
 	if err != nil {
-		return nil, fmt.Errorf("Error making http request: %s\n", err)
+		return nil, fmt.Errorf("Error making AI HTTP request: %s\n", err)
 	}
 
 	resBody, err := ioutil.ReadAll(resp.Body)
@@ -29,12 +24,26 @@ func GetProgramScope(opt options.Options) (*Scope, error) {
 	if err != nil {
 		return nil, fmt.Errorf("client: could not read response body: %s\n", err)
 	}
-	// fmt.Printf("client: response body: %s\n", resBody)
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("non-2XX response from server: %s", err)
 	}
 	return Unmarshal(resBody), nil
+}
+
+func makeAPIRequest(link string, opt options.Options) (*http.Response, error) {
+
+	client := &retryablehttp.Client{}
+
+	req, _ := retryablehttp.NewRequest("GET", link, nil)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Add("Authorization", "Basic "+basicAuth(opt))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func basicAuth(opt options.Options) string {
