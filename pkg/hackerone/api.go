@@ -11,30 +11,30 @@ import (
 	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
-func GetProgramScope(opt options.Options) (*Scope, error) {
+func GetProgramScope(output chan string, opt options.Options) error {
 	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs/%s", opt.Handle)
 
 	resp, err := makeAPIRequest(link, opt)
 	if err != nil {
-		return nil, fmt.Errorf("Error making AI HTTP request: %s\n", err)
+		return fmt.Errorf("Error making AI HTTP request: %s\n", err)
 	}
 
 	resBody, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
-		return nil, fmt.Errorf("client: could not read response body: %s\n", err)
+		return fmt.Errorf("client: could not read response body: %s\n", err)
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("non-2XX response from server: %s", err)
+		return fmt.Errorf("non-2XX response from server: %s", err)
 	}
 	scope, err := Unmarshal(resBody)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	ProcessProgramScope(*scope, opt)
-	// return ProcessScope(scope, opt), nil
-	return nil, nil
+	ProcessScope(*scope, opt, output)
+
+	return nil
 }
 
 func makeAPIRequest(link string, opt options.Options) (*http.Response, error) {

@@ -1,24 +1,23 @@
 package hackerone
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
-func ProcessScope(scope *Scope, opt options.Options) {
+func ProcessScope(scope Scope, opt options.Options, output chan string) {
 	// TODO: Consider using a chan to write output.
 
 	// if scope == nil {
 	// 	return nil
 	// }
 
-	ProcessProgramScope(*scope, opt)
+	ProcessProgramScope(scope, opt, output)
 }
 
-func ProcessProgramScope(scope Scope, opt options.Options) {
+func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 
 	for _, asset := range scope.Relationships.StructuredScopes.Data {
 
@@ -35,32 +34,32 @@ func ProcessProgramScope(scope Scope, opt options.Options) {
 			if (opt.Wildcard || opt.ALL) && strings.HasPrefix(identifier, "*") {
 				if opt.CleanWildcard {
 					identifier = cleanDomain(identifier)
-					fmt.Println(identifier)
+					output <- identifier
 				} else {
-					fmt.Println(identifier)
+					output <- identifier
 				}
 				continue
 			} else if (opt.Domains || opt.ALL) && !strings.HasPrefix(identifier, "*") {
-				fmt.Println(identifier)
+				output <- identifier
 			}
 		} else if (opt.CIDR || opt.ALL) && assetType == "CIDR" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.Code || opt.ALL) && assetType == "SOURCE_CODE" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.Android || opt.ALL) && assetType == "GOOGLE_PLAY_APP_ID" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.APK || opt.ALL) && assetType == "OTHER_APK" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.IOS || opt.ALL) && assetType == "APPLE_STORE_APP_ID" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.IPA || opt.ALL) && assetType == "OTHER_IPA" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.Other || opt.ALL) && assetType == "OTHER" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.Hardware || opt.ALL) && assetType == "HARDWARE" {
-			fmt.Println(identifier)
+			output <- identifier
 		} else if (opt.Windows || opt.ALL) && assetType == "WINDOWS_APP_STORE_APP_ID" {
-			fmt.Println(identifier)
+			output <- identifier
 		}
 	}
 }
