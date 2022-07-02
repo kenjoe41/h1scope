@@ -75,7 +75,7 @@ func ScanFlag() Options {
 		*paidPtr,
 	}
 
-	if !result.Wildcard || !result.Domains || !result.CIDR || !result.Android || !result.IOS || !result.Code || !result.Other || !result.APK || !result.IPA || !result.Hardware || !result.Windows {
+	if !result.Wildcard && !result.Domains && !result.CIDR && !result.Android && !result.IOS && !result.Code && !result.Other && !result.APK && !result.IPA && !result.Hardware && !result.Windows {
 		result.ALL = true
 	}
 

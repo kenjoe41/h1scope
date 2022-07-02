@@ -5,39 +5,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
-func GetProgramScope(output chan string, opt options.Options) error {
-	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs/%s", opt.Handle)
-
-	resp, err := makeAPIRequest(link, opt)
+func processProgramsApiRequest(link string, opt options.Options) (*Programs, error) {
+	resBody, err := makeAPIRequest(link, opt)
 	if err != nil {
-		return fmt.Errorf("Error making AI HTTP request: %s\n", err)
+		return nil, fmt.Errorf("Error making AI HTTP request: %s\n", err)
 	}
 
-	resBody, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
+	programs, err := UnmarshalPrograms(resBody)
 	if err != nil {
-		return fmt.Errorf("client: could not read response body: %s\n", err)
+		return nil, err
 	}
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("non-2XX response from server: %s", err)
-	}
-	scope, err := Unmarshal(resBody)
-	if err != nil {
-		return err
-	}
-	ProcessScope(*scope, opt, output)
-
-	return nil
+	return programs, nil
 }
 
-func makeAPIRequest(link string, opt options.Options) (*http.Response, error) {
+func processAPIRequest(link string, opt options.Options) (*Scope, error) {
+	resBody, err := makeAPIRequest(link, opt)
+	if err != nil {
+		return nil, fmt.Errorf("Error making AI HTTP request: %s\n", err)
+	}
+
+	scope, err := Unmarshal(resBody)
+	if err != nil {
+		return nil, err
+	}
+	return scope, nil
+}
+
+func makeAPIRequest(link string, opt options.Options) ([]byte, error) {
 
 	client := retryablehttp.NewClient()
 	client.Logger = nil
@@ -51,7 +50,18 @@ func makeAPIRequest(link string, opt options.Options) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resp, nil
+
+	resBody, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("client: could not read response body: %s\n", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("non-2XX response from server: %s", err)
+	}
+
+	return resBody, nil
 }
 
 func basicAuth(opt options.Options) string {
@@ -66,4 +76,13 @@ func Unmarshal(jsonBytes []byte) (*Scope, error) {
 		return nil, err
 	}
 	return scope, nil
+}
+
+func UnmarshalPrograms(jsonBytes []byte) (*Programs, error) {
+	programs := new(Programs)
+
+	if err := json.Unmarshal(jsonBytes, &programs); err != nil {
+		return nil, err
+	}
+	return programs, nil
 }

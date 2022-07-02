@@ -1,25 +1,100 @@
 package hackerone
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
-func ProcessScope(scope Scope, opt options.Options, output chan string) {
-	// TODO: Consider using a chan to write output.
+func GetProgramsScope(programsChan chan string, output chan string, opt options.Options) error {
+	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs")
 
-	// if scope == nil {
-	// 	return nil
-	// }
+	processPrograms(link, programsChan, output, opt)
 
-	ProcessProgramScope(scope, opt, output)
+	close(programsChan)
+
+	return nil
+}
+
+func processPrograms(link string, programsChan chan string, output chan string, opt options.Options) {
+
+	var programScopeWG sync.WaitGroup
+	programScopeWG.Add(1)
+	go func() {
+		defer programScopeWG.Done()
+
+		for h_program := range programsChan {
+			opt.Handle = h_program
+			GetProgramScope(output, opt)
+		}
+
+	}()
+
+	for {
+		programs, err := getPrograms(link, opt)
+		if err != nil {
+			continue
+		}
+
+		for _, program := range programs.ProgramsData {
+
+			// Looks like we have VDP
+			if opt.Private && program.ProgramsAttributes.OffersBounty != true {
+				continue
+			} else if opt.Vdp && program.ProgramsAttributes.OffersBounty == true {
+				// For some God Almighty reason, someone wants only VDP.
+				continue
+			}
+
+			// Do we want Private or Public programs
+			if opt.Private && program.ProgramsAttributes.State == "public_mode" {
+				continue
+			} else if opt.Public && program.ProgramsAttributes.State != "public_mode" {
+				continue
+			}
+
+			// Okay, we are all good for now.
+			programsChan <- program.ProgramsAttributes.Handle
+
+		}
+
+		// Pagination, do we have another page or break out of the Infinite loop!?
+		if programs.Links.Next == "" {
+			break
+		} else {
+			link = programs.Links.Next
+		}
+	}
+}
+
+func getPrograms(link string, opt options.Options) (*Programs, error) {
+	programs, err := processProgramsApiRequest(link, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	return programs, nil
+}
+
+func GetProgramScope(output chan string, opt options.Options) error {
+	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs/%s", opt.Handle)
+
+	scope, err := processAPIRequest(link, opt)
+	if err != nil {
+		return err
+	}
+	// fmt.Println(scope.Relationships.StructuredScopes.ScopeData[0].Attributes.Identifier)
+	ProcessProgramScope(*scope, opt, output)
+
+	return nil
 }
 
 func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 
-	for _, asset := range scope.Relationships.StructuredScopes.Data {
+	for _, asset := range scope.Relationships.StructuredScopes.ScopeData {
 
 		// Out of Scope, TODO: implement flag for it if there is ever a need.
 		if asset.Attributes.EligibleForBounty == false {
@@ -32,7 +107,7 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 
 		if assetType == "URL" {
 			if (opt.Wildcard || opt.ALL) && strings.HasPrefix(identifier, "*") {
-				if opt.CleanWildcard {
+				if opt.CleanWildcard { //TODO: run with handle security, seems it is not cleaning the *
 					identifier = cleanDomain(identifier)
 					output <- identifier
 				} else {
@@ -40,6 +115,7 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 				}
 				continue
 			} else if (opt.Domains || opt.ALL) && !strings.HasPrefix(identifier, "*") {
+				// fmt.Println(identifier)
 				output <- identifier
 			}
 		} else if (opt.CIDR || opt.ALL) && assetType == "CIDR" {
@@ -62,6 +138,8 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 			output <- identifier
 		}
 	}
+	// For some fricking reasoi failed to solve the issue of noot printin last item on chan.
+	output <- ""
 }
 
 func cleanDomain(domain string) string {

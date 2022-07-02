@@ -18,29 +18,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	if flags.Handle == "" {
-		fmt.Fprintln(os.Stderr, "No program handle specified.")
-		options.Usage()
-		os.Exit(1)
-	}
-
+	programsChan := make(chan string)
 	output := make(chan string)
 
 	var outputWG sync.WaitGroup
 	outputWG.Add(1)
 	go func() {
-		defer close(output)
+		// defer outputWG.Done()
 
 		for scopeAsset := range output {
 			fmt.Println(scopeAsset)
 		}
+
 		outputWG.Done()
 	}()
 
-	if err := hackerone.GetProgramScope(output, flags); err != nil {
-		fmt.Fprintf(os.Stderr, "An error occured when fetching scope: %s\n", err)
+	if flags.Handle != "" {
+		if err := hackerone.GetProgramScope(output, flags); err != nil {
+			fmt.Fprintf(os.Stderr, "An error occured when fetching scope: %s\n", err)
+		}
+	} else {
+		if err := hackerone.GetProgramsScope(programsChan, output, flags); err != nil {
+			fmt.Fprintf(os.Stderr, "An error occured when fetching programs scope: %s\n", err)
+		}
 	}
 
-	// close(output)
-
+	go func() {
+		outputWG.Wait()
+		close(output)
+	}()
 }
