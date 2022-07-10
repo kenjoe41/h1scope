@@ -86,7 +86,7 @@ func GetProgramScope(output chan string, opt options.Options) error {
 	if err != nil {
 		return err
 	}
-	// fmt.Println(scope.Relationships.StructuredScopes.ScopeData[0].Attributes.Identifier)
+
 	ProcessProgramScope(*scope, opt, output)
 
 	return nil
@@ -108,14 +108,14 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 		if assetType == "URL" {
 			if (opt.Wildcard || opt.ALL) && strings.HasPrefix(identifier, "*") {
 				if opt.CleanWildcard { //TODO: run with handle security, seems it is not cleaning the *
-					identifier = cleanDomain(identifier)
-					output <- identifier
+					cleanidentifier := cleanDomain(identifier)
+					output <- cleanidentifier
 				} else {
 					output <- identifier
 				}
 				continue
 			} else if (opt.Domains || opt.ALL) && !strings.HasPrefix(identifier, "*") {
-				// fmt.Println(identifier)
+
 				output <- identifier
 			}
 		} else if (opt.CIDR || opt.ALL) && assetType == "CIDR" {
@@ -138,7 +138,7 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 			output <- identifier
 		}
 	}
-	// For some fricking reasoi failed to solve the issue of noot printin last item on chan.
+	// For some fricking reason failed to solve the issue of noot printin last item on chan.
 	output <- ""
 }
 
