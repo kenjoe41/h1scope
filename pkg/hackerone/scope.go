@@ -9,29 +9,26 @@ import (
 	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
-func GetProgramsScope(programsChan chan string, output chan string, opt options.Options) error {
-	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs")
+func GetProgramsScope(programsChan chan string, output chan string, opt options.Options) {
+	link := "https://api.hackerone.com/v1/hackers/programs"
 
 	processPrograms(link, programsChan, output, opt)
 
 	close(programsChan)
-
-	return nil
 }
 
 func processPrograms(link string, programsChan chan string, output chan string, opt options.Options) {
 
 	var programScopeWG sync.WaitGroup
-	programScopeWG.Add(1)
-	go func() {
-		defer programScopeWG.Done()
-
-		for h_program := range programsChan {
-			opt.Handle = h_program
-			GetProgramScope(output, opt)
+	if opt.Handle != "" {
+		programScopeWG.Add(1)
+		goProcess(&programScopeWG, programsChan, output, opt)
+	} else {
+		for i := 1; i <= int(opt.Concurrency); i++ {
+			programScopeWG.Add(1)
+			goProcess(&programScopeWG, programsChan, output, opt)
 		}
-
-	}()
+	}
 
 	for {
 		programs, err := getPrograms(link, opt)
@@ -42,9 +39,9 @@ func processPrograms(link string, programsChan chan string, output chan string, 
 		for _, program := range programs.ProgramsData {
 
 			// Looks like we have VDP
-			if opt.Private && program.ProgramsAttributes.OffersBounty != true {
+			if opt.Private && !program.ProgramsAttributes.OffersBounty {
 				continue
-			} else if opt.Vdp && program.ProgramsAttributes.OffersBounty == true {
+			} else if opt.Vdp && program.ProgramsAttributes.OffersBounty {
 				// For some God Almighty reason, someone wants only VDP.
 				continue
 			}
@@ -68,6 +65,20 @@ func processPrograms(link string, programsChan chan string, output chan string, 
 			link = programs.Links.Next
 		}
 	}
+
+	programScopeWG.Wait()
+}
+
+func goProcess(programScopeWG *sync.WaitGroup, programsChan chan string, output chan string, opt options.Options) {
+	go func() {
+		defer programScopeWG.Done()
+
+		for h_program := range programsChan {
+			opt.Handle = h_program
+			GetProgramScope(output, opt)
+		}
+
+	}()
 }
 
 func getPrograms(link string, opt options.Options) (*Programs, error) {
@@ -97,7 +108,7 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 	for _, asset := range scope.Relationships.StructuredScopes.ScopeData {
 
 		// Out of Scope, TODO: implement flag for it if there is ever a need.
-		if asset.Attributes.EligibleForBounty == false {
+		if !asset.Attributes.EligibleForBounty {
 			// Skip out of scope
 			continue
 		}

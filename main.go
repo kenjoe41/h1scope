@@ -24,23 +24,18 @@ func main() {
 	var outputWG sync.WaitGroup
 	outputWG.Add(1)
 	go func() {
-		// defer outputWG.Done()
+		defer outputWG.Done()
 
 		for scopeAsset := range output {
 			fmt.Println(scopeAsset)
 		}
 
-		outputWG.Done()
 	}()
 
 	if flags.Handle != "" {
-		if err := hackerone.GetProgramScope(output, flags); err != nil {
-			fmt.Fprintf(os.Stderr, "An error occured when fetching scope: %s\n", err)
-		}
+		hackerone.GetProgramScope(output, flags)
 	} else {
-		if err := hackerone.GetProgramsScope(programsChan, output, flags); err != nil {
-			fmt.Fprintf(os.Stderr, "An error occured when fetching programs scope: %s\n", err)
-		}
+		hackerone.GetProgramsScope(programsChan, output, flags)
 	}
 
 	go func() {

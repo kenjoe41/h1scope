@@ -8,6 +8,7 @@ import (
 type Options struct {
 	Username      string
 	Apikey        string
+	Concurrency   uint16
 	Handle        string
 	Wildcard      bool
 	CleanWildcard bool
@@ -31,6 +32,7 @@ type Options struct {
 func ScanFlag() Options {
 	usernamePtr := flag.String("u", os.Getenv("H1_USERNAME"), "Hackerone Username.")
 	apikeyPtr := flag.String("apikey", os.Getenv("H1_APIKEY"), "Generate APIKEY from https://hackerone.com/settings/api_token/edit")
+	concurrencyPtr := flag.Uint64("c", 5, "Concurrent programs to process.")
 	handlePtr := flag.String("handle", "", "Handle for a specific program.")
 	wildcardPtr := flag.Bool("wildcard", false, "Get wildcard domains.")
 	cleanwildcardPtr := flag.Bool("cw", false, "Clean wildcard domains to pipe to recon tools, *.hackerone.com => hackerone.com")
@@ -55,6 +57,7 @@ func ScanFlag() Options {
 	result := Options{
 		*usernamePtr,
 		*apikeyPtr,
+		uint16(*concurrencyPtr),
 		*handlePtr,
 		*wildcardPtr,
 		*cleanwildcardPtr,

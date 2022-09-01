@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/kenjoe41/h1scope/pkg/options"
@@ -13,7 +13,7 @@ import (
 func processProgramsApiRequest(link string, opt options.Options) (*Programs, error) {
 	resBody, err := makeAPIRequest(link, opt)
 	if err != nil {
-		return nil, fmt.Errorf("Error making AI HTTP request: %s\n", err)
+		return nil, fmt.Errorf("error making AI HTTP request: %s", err)
 	}
 
 	programs, err := UnmarshalPrograms(resBody)
@@ -26,7 +26,7 @@ func processProgramsApiRequest(link string, opt options.Options) (*Programs, err
 func processAPIRequest(link string, opt options.Options) (*Scope, error) {
 	resBody, err := makeAPIRequest(link, opt)
 	if err != nil {
-		return nil, fmt.Errorf("Error making AI HTTP request: %s\n", err)
+		return nil, fmt.Errorf("error making AI HTTP request: %s", err)
 	}
 
 	scope, err := Unmarshal(resBody)
@@ -51,10 +51,10 @@ func makeAPIRequest(link string, opt options.Options) ([]byte, error) {
 		return nil, err
 	}
 
-	resBody, err := ioutil.ReadAll(resp.Body)
+	resBody, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
-		return nil, fmt.Errorf("client: could not read response body: %s\n", err)
+		return nil, fmt.Errorf("client: could not read response body: %s", err)
 	}
 
 	if resp.StatusCode != 200 {
