@@ -153,8 +153,6 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 			output <- identifier
 		}
 	}
-	// For some fricking reason failed to solve the issue of noot printin last item on chan.
-	// output <- ""
 }
 
 func cleanDomain(domain string) string {
