@@ -52,7 +52,7 @@ func ScanFlag() Options {
 	publicPtr := flag.Bool("public", false, "Get scope for public programs.")
 	vdpPtr := flag.Bool("vdp", false, "Get scope for free VDP programs.")
 	paidPtr := flag.Bool("paid", false, "Get scope for Paid Programs.")
-	includeHandlePtr := flag.Bool("include-handle", false, "Include Hadle of the program per asset printout e.g. hackerone, vpn.hackerone.com")
+	includeHandlePtr := flag.Bool("include-handle", false, "Include Handle of the program per asset printout e.g. \"hackerone, vpn.hackerone.com\"")
 
 	flag.Parse()
 
