@@ -27,6 +27,7 @@ type Options struct {
 	Public        bool
 	Vdp           bool
 	Paid          bool
+	IncludeHandle bool
 }
 
 func ScanFlag() Options {
@@ -51,6 +52,7 @@ func ScanFlag() Options {
 	publicPtr := flag.Bool("public", false, "Get scope for public programs.")
 	vdpPtr := flag.Bool("vdp", false, "Get scope for free VDP programs.")
 	paidPtr := flag.Bool("paid", false, "Get scope for Paid Programs.")
+	includeHandlePtr := flag.Bool("include-handle", false, "Include Hadle of the program per asset printout e.g. hackerone, vpn.hackerone.com")
 
 	flag.Parse()
 
@@ -76,6 +78,7 @@ func ScanFlag() Options {
 		*publicPtr,
 		*vdpPtr,
 		*paidPtr,
+		*includeHandlePtr,
 	}
 
 	if !result.Wildcard && !result.Domains && !result.CIDR && !result.Android && !result.IOS && !result.Code && !result.Other && !result.APK && !result.IPA && !result.Hardware && !result.Windows {

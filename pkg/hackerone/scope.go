@@ -9,22 +9,22 @@ import (
 	"github.com/kenjoe41/h1scope/pkg/options"
 )
 
-func GetProgramsScope(programsChan chan string, output chan string, opt options.Options) {
+func GetProgramsScope(programsChan chan string, outputChan chan string, opt options.Options) {
 	link := "https://api.hackerone.com/v1/hackers/programs"
 
-	processPrograms(link, programsChan, output, opt)
+	processPrograms(link, programsChan, outputChan, opt)
 
 }
 
-func processPrograms(link string, programsChan chan string, output chan string, opt options.Options) {
+func processPrograms(link string, programsChan chan string, outputChan chan string, opt options.Options) {
 	var programScopeWG sync.WaitGroup
 	if opt.Handle != "" {
 		programScopeWG.Add(1)
-		goProcess(&programScopeWG, programsChan, output, opt)
+		goProcess(&programScopeWG, programsChan, outputChan, opt)
 	} else {
 		for i := 1; i <= int(opt.Concurrency); i++ {
 			programScopeWG.Add(1)
-			goProcess(&programScopeWG, programsChan, output, opt)
+			goProcess(&programScopeWG, programsChan, outputChan, opt)
 		}
 	}
 
@@ -73,13 +73,13 @@ func processPrograms(link string, programsChan chan string, output chan string, 
 	programScopeWG.Wait()
 }
 
-func goProcess(programScopeWG *sync.WaitGroup, programsChan chan string, output chan string, opt options.Options) {
+func goProcess(programScopeWG *sync.WaitGroup, programsChan chan string, outputChan chan string, opt options.Options) {
 	go func() {
 		defer programScopeWG.Done()
 
 		for h_program := range programsChan {
 			opt.Handle = h_program
-			GetProgramScope(output, opt)
+			GetProgramScope(outputChan, opt)
 		}
 
 	}()
@@ -94,7 +94,7 @@ func getPrograms(link string, opt options.Options) (*Programs, error) {
 	return programs, nil
 }
 
-func GetProgramScope(output chan string, opt options.Options) error {
+func GetProgramScope(outputChan chan string, opt options.Options) error {
 	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs/%s", opt.Handle)
 
 	scope, err := processAPIRequest(link, opt)
@@ -102,12 +102,12 @@ func GetProgramScope(output chan string, opt options.Options) error {
 		return err
 	}
 
-	ProcessProgramScope(*scope, opt, output)
+	ProcessProgramScope(*scope, opt, outputChan)
 
 	return nil
 }
 
-func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
+func ProcessProgramScope(scope Scope, opt options.Options, outputChan chan string) {
 
 	for _, asset := range scope.Relationships.StructuredScopes.ScopeData {
 
@@ -122,35 +122,36 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 
 		if assetType == "URL" {
 			if (opt.Wildcard || opt.ALL) && strings.HasPrefix(identifier, "*") {
-				if opt.CleanWildcard { //TODO: run with handle security, seems it is not cleaning the *
-					cleanidentifier := cleanDomain(identifier)
-					output <- cleanidentifier
-				} else {
-					output <- identifier
-				}
+
+				handleDomainIdentifier(identifier, outputChan, opt)
+
 				continue
 			} else if (opt.Domains || opt.ALL) && !strings.HasPrefix(identifier, "*") {
 
-				output <- identifier
+				handleDomainIdentifier(identifier, outputChan, opt)
 			}
 		} else if (opt.CIDR || opt.ALL) && assetType == "CIDR" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		} else if (opt.Code || opt.ALL) && assetType == "SOURCE_CODE" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		} else if (opt.Android || opt.ALL) && assetType == "GOOGLE_PLAY_APP_ID" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		} else if (opt.APK || opt.ALL) && assetType == "OTHER_APK" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		} else if (opt.IOS || opt.ALL) && assetType == "APPLE_STORE_APP_ID" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		} else if (opt.IPA || opt.ALL) && assetType == "OTHER_IPA" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		} else if (opt.Other || opt.ALL) && assetType == "OTHER" {
-			output <- identifier
+			if strings.HasPrefix(identifier, "*") {
+				handleDomainIdentifier(identifier, outputChan, opt)
+			} else {
+				handleAsset(identifier, outputChan, opt)
+			}
 		} else if (opt.Hardware || opt.ALL) && assetType == "HARDWARE" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		} else if (opt.Windows || opt.ALL) && assetType == "WINDOWS_APP_STORE_APP_ID" {
-			output <- identifier
+			handleAsset(identifier, outputChan, opt)
 		}
 	}
 }
@@ -169,4 +170,48 @@ func cleanDomain(domain string) string {
 		return cDomain
 	}
 	return domain
+}
+
+func domainSplitTrimSpace(domain string) []string {
+	domainSlice := strings.Split(domain, ",")
+	for i := range domainSlice {
+		domainSlice[i] = strings.TrimSpace(domainSlice[i])
+	}
+
+	return domainSlice
+}
+
+func handleAsset(identifier string, outputChan chan string, opt options.Options) {
+	domainsSlice := domainSplitTrimSpace(identifier)
+	for _, identifier := range domainsSlice {
+		if opt.IncludeHandle {
+			outputChan <- fmt.Sprintf("%s, %s", opt.Handle, identifier)
+		} else {
+			outputChan <- identifier
+		}
+	}
+}
+func handleDomainIdentifier(identifier string, outputChan chan string, opt options.Options) {
+	if opt.CleanWildcard {
+		identifier = cleanDomain(identifier)
+		domainsSlice := domainSplitTrimSpace(identifier)
+		for _, identifier := range domainsSlice {
+			if opt.IncludeHandle {
+				outputChan <- fmt.Sprintf("%s, %s", opt.Handle, identifier)
+			} else {
+				outputChan <- identifier
+			}
+		}
+	} else {
+		// Lets clean up the domain abit e.g. "site.com, site2.com"
+		domainsSlice := domainSplitTrimSpace(identifier)
+		for _, identifier := range domainsSlice {
+			if opt.IncludeHandle {
+				outputChan <- fmt.Sprintf("%s, %s", opt.Handle, identifier)
+			} else {
+				outputChan <- identifier
+			}
+		}
+	}
+
 }

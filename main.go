@@ -19,27 +19,27 @@ func main() {
 	}
 
 	programsChan := make(chan string)
-	output := make(chan string)
+	outputChan := make(chan string)
 
 	var outputWG sync.WaitGroup
 	outputWG.Add(1)
 	go func() {
 		defer outputWG.Done()
 
-		for scopeAsset := range output {
+		for scopeAsset := range outputChan {
 			fmt.Println(scopeAsset)
 		}
 
 	}()
 
 	if flags.Handle != "" {
-		hackerone.GetProgramScope(output, flags)
+		hackerone.GetProgramScope(outputChan, flags)
 	} else {
-		hackerone.GetProgramsScope(programsChan, output, flags)
+		hackerone.GetProgramsScope(programsChan, outputChan, flags)
 	}
 
 	go func() {
 		outputWG.Wait()
-		close(output)
+		close(outputChan)
 	}()
 }
