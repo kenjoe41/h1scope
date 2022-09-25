@@ -14,11 +14,9 @@ func GetProgramsScope(programsChan chan string, output chan string, opt options.
 
 	processPrograms(link, programsChan, output, opt)
 
-	close(programsChan)
 }
 
 func processPrograms(link string, programsChan chan string, output chan string, opt options.Options) {
-
 	var programScopeWG sync.WaitGroup
 	if opt.Handle != "" {
 		programScopeWG.Add(1)
@@ -33,7 +31,11 @@ func processPrograms(link string, programsChan chan string, output chan string, 
 	for {
 		programs, err := getPrograms(link, opt)
 		if err != nil {
-			continue
+			if programs.Links.Next == "" {
+				break
+			} else {
+				continue
+			}
 		}
 
 		for _, program := range programs.ProgramsData {
@@ -60,7 +62,9 @@ func processPrograms(link string, programsChan chan string, output chan string, 
 
 		// Pagination, do we have another page or break out of the Infinite loop!?
 		if programs.Links.Next == "" {
+			close(programsChan)
 			break
+
 		} else {
 			link = programs.Links.Next
 		}
@@ -150,7 +154,7 @@ func ProcessProgramScope(scope Scope, opt options.Options, output chan string) {
 		}
 	}
 	// For some fricking reason failed to solve the issue of noot printin last item on chan.
-	output <- ""
+	// output <- ""
 }
 
 func cleanDomain(domain string) string {
