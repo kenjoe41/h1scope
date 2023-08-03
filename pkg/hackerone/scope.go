@@ -49,9 +49,9 @@ func processPrograms(link string, programsChan chan string, outputChan chan stri
 			}
 
 			// Do we want Private or Public programs
-			if opt.Private && program.ProgramsAttributes.State == "public_mode" {
+			if (opt.Private && program.ProgramsAttributes.State == "public_mode") {
 				continue
-			} else if opt.Public && program.ProgramsAttributes.State != "public_mode" {
+			} else if (opt.Public && program.ProgramsAttributes.State != "public_mode") {
 				continue
 			}
 
