@@ -18,17 +18,22 @@ type ProgramsAttributes struct {
 type NextPrograms struct {
 	Next string `json:"next"`
 }
+
 type Scope struct {
-	Relationships *Relationship `json:"relationships"`
+	ProgramData []*ScopeData `json:"data"`
 }
 
-type Relationship struct {
-	StructuredScopes *StructuredScopes `json:"structured_scopes"`
-}
+// type ProgramData struct {
+// 	Relationships *Relationship `json:"relationships"`
+// }
 
-type StructuredScopes struct {
-	ScopeData []*ScopeData `json:"data"`
-}
+// // type Relationship struct {
+// // 	StructuredScopes *StructuredScopes `json:"structured_scopes"`
+// // }
+
+// // type StructuredScopes struct {
+// // 	ScopeData []*ScopeData `json:"data"`
+// // }
 
 type ScopeData struct {
 	Attributes *ScopeAttributes `json:"attributes"`

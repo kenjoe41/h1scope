@@ -49,9 +49,9 @@ func processPrograms(link string, programsChan chan string, outputChan chan stri
 			}
 
 			// Do we want Private or Public programs
-			if (opt.Private && program.ProgramsAttributes.State == "public_mode") {
+			if opt.Private && program.ProgramsAttributes.State == "public_mode" {
 				continue
-			} else if (opt.Public && program.ProgramsAttributes.State != "public_mode") {
+			} else if opt.Public && program.ProgramsAttributes.State != "public_mode" {
 				continue
 			}
 
@@ -95,21 +95,21 @@ func getPrograms(link string, opt options.Options) (*Programs, error) {
 }
 
 func GetProgramScope(outputChan chan string, opt options.Options) error {
-	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs/%s", opt.Handle)
+
+	link := fmt.Sprintf("https://api.hackerone.com/v1/hackers/programs/%s/structured_scopes", opt.Handle)
 
 	scope, err := processAPIRequest(link, opt)
 	if err != nil {
 		return err
 	}
-
-	ProcessProgramScope(*scope, opt, outputChan)
+	processProgramScope(*scope, opt, outputChan)
 
 	return nil
 }
 
-func ProcessProgramScope(scope Scope, opt options.Options, outputChan chan string) {
+func processProgramScope(scope Scope, opt options.Options, outputChan chan string) {
 
-	for _, asset := range scope.Relationships.StructuredScopes.ScopeData {
+	for _, asset := range scope.ProgramData {
 
 		// Out of Scope, TODO: implement flag for it if there is ever a need.
 		if !asset.Attributes.EligibleForBounty {
@@ -120,16 +120,10 @@ func ProcessProgramScope(scope Scope, opt options.Options, outputChan chan strin
 		identifier := asset.Attributes.Identifier
 		assetType := asset.Attributes.AssetType
 
-		if assetType == "URL" {
-			if (opt.Wildcard || opt.ALL) && strings.HasPrefix(identifier, "*") {
-
-				handleDomainIdentifier(identifier, outputChan, opt)
-
-				continue
-			} else if (opt.Domains || opt.ALL) && !strings.HasPrefix(identifier, "*") {
-
-				handleDomainIdentifier(identifier, outputChan, opt)
-			}
+		if (opt.Domains || opt.ALL) && assetType == "URL" {
+			handleDomainIdentifier(identifier, outputChan, opt)
+		} else if (opt.Wildcard || opt.ALL) && assetType == "WILDCARD" {
+			handleDomainIdentifier(identifier, outputChan, opt)
 		} else if (opt.CIDR || opt.ALL) && assetType == "CIDR" {
 			handleAsset(identifier, outputChan, opt)
 		} else if (opt.Code || opt.ALL) && assetType == "SOURCE_CODE" {

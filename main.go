@@ -33,7 +33,10 @@ func main() {
 	}()
 
 	if flags.Handle != "" {
-		hackerone.GetProgramScope(outputChan, flags)
+		err := hackerone.GetProgramScope(outputChan, flags)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 	} else {
 		hackerone.GetProgramsScope(programsChan, outputChan, flags)
 	}
